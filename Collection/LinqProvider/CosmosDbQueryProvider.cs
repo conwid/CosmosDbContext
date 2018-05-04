@@ -4,6 +4,7 @@ using CosmosDbContext.Extensions;
 using Microsoft.Azure.Documents.Client;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
@@ -78,7 +79,22 @@ namespace CosmosDbContext.Collection.LinqProvider
             {
                 return (TResult)newRoot.Provider.CreateQuery(newExpressionTree);
             }
-            return (TResult)newRoot.Provider.Execute(newExpressionTree);
+            var result = newRoot.Provider.Execute(newExpressionTree);
+            try
+            {
+                return (TResult)result;
+            }
+            // Here the type is not known at compile time (Execute returns an object)
+            // The query is executed using the CosmosDb SDK which uses Json.NET
+            // When the type is not specified at compile time (like know), Json.NET deserializes integers as Int64
+            // This can lead to problems when e.g. Count() is used, which expects an Int32
+            // Since this will be deserialized as Int64 and then boxed to an object, it cannot be cast to an Int32
+            // This is a combined limitation of json and Json.NET
+            // This here is to support some basic scenarios and make the solution more robust
+            catch (InvalidCastException)
+            {
+                return (TResult)Convert.ChangeType(result, typeof(TResult), CultureInfo.InvariantCulture);
+            }
         }
 
         // HACK: This is built on internal APIs based on my explorations of the source code using ILSpy
