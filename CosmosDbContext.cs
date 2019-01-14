@@ -58,17 +58,10 @@ namespace CosmosDbContext
         /// <summary>
         /// Closes the connection to the database
         /// </summary>
-        public void Dispose()
-        {
-            client?.Dispose();
-        }
+        public void Dispose() => client?.Dispose();
 
-        private List<PropertyInfo> GetDocumentDbRelatedProperties()
-        {
-            // We are interested in properties that have this special attribute           
-            return this.GetType().GetProperties()
-                .Where(p => p.PropertyType.IsGenericType && (p.GetCustomAttribute<CosmosDbCollectionAttribute>() != null)).ToList();
-        }
+        private List<PropertyInfo> GetDocumentDbRelatedProperties() => 
+            this.GetType().GetProperties().Where(p => p.PropertyType.IsGenericType && (p.GetCustomAttribute<CosmosDbCollectionAttribute>() != null)).ToList();        
 
         private void Init()
         {
@@ -88,20 +81,20 @@ namespace CosmosDbContext
         // The event at the context level is an "aggregate event" for all the same events at collection level
         private void Unsubscribe(Action<string> value)
         {
-            List<PropertyInfo> properties = GetDocumentDbRelatedProperties();
+            var properties = GetDocumentDbRelatedProperties();
             foreach (var property in properties)
             {
                 var propValue = property.GetValue(this);
-                propValue.GetType().GetEvent("Log").RemoveEventHandler(propValue, value);
+                propValue.GetType().GetEvent(nameof(Log)).RemoveEventHandler(propValue, value);
             }
         }
         private void Subscribe(Action<string> value)
         {
-            List<PropertyInfo> properties = GetDocumentDbRelatedProperties();
+            var properties = GetDocumentDbRelatedProperties();
             foreach (var property in properties)
             {
                 var propValue = property.GetValue(this);
-                propValue.GetType().GetEvent("Log").AddEventHandler(propValue, value);
+                propValue.GetType().GetEvent(nameof(Log)).AddEventHandler(propValue, value);
             }
         }
 
@@ -112,29 +105,21 @@ namespace CosmosDbContext
             var r = client.ExecuteStoredProcedureAsync<string>(UriFactory.CreateStoredProcedureUri(database, collectionName, storedProcName), parameters).Result.Response;
             using (JsonTextReader reader = new JsonTextReader(new StringReader(r)))
             {
-                if (!reader.Read())
-                {
-                    return new List<T>().AsQueryable();
-                }
+                if (!reader.Read())                
+                    return new List<T>().AsQueryable();                
 
-                if (reader.TokenType == JsonToken.Null || reader.TokenType == JsonToken.None || reader.TokenType == JsonToken.Undefined)
-                {
+                if (reader.TokenType == JsonToken.Null || reader.TokenType == JsonToken.None || reader.TokenType == JsonToken.Undefined)                
                     return new List<T>().AsQueryable();
-                }
-                else if (reader.TokenType == JsonToken.StartObject)
-                {
-                    T instance = JsonConvert.DeserializeObject<T>(r);
-                    return new List<T>() { instance }.AsQueryable();
-                }
-                else if (reader.TokenType == JsonToken.StartArray)
-                {
+                
+                if (reader.TokenType == JsonToken.StartObject)                                    
+                    return new List<T>() { JsonConvert.DeserializeObject<T>(r) }.AsQueryable();                
+
+                if (reader.TokenType == JsonToken.StartArray)
                     return JsonConvert.DeserializeObject<List<T>>(r).AsQueryable();
-                }
-                else if (reader.TokenType == JsonToken.Boolean || reader.TokenType == JsonToken.Date || reader.TokenType == JsonToken.Float || reader.TokenType == JsonToken.Integer || reader.TokenType == JsonToken.String)
-                {
-                    T instance = JsonConvert.DeserializeObject<T>(r);
-                    return new List<T>() { instance }.AsQueryable();
-                }
+                
+                if (reader.TokenType == JsonToken.Boolean || reader.TokenType == JsonToken.Date || reader.TokenType == JsonToken.Float || reader.TokenType == JsonToken.Integer || reader.TokenType == JsonToken.String)                                    
+                    return new List<T>() { JsonConvert.DeserializeObject<T>(r) }.AsQueryable();
+                
                 throw new InvalidOperationException($"Token {reader.TokenType} cannot be the first token in the result");
             }
         }

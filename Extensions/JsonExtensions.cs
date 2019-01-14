@@ -23,14 +23,11 @@ namespace CosmosDbContext.Extensions
         }
 
         public static IEnumerable<dynamic> ReadJsonAsDynamicQueryable(JsonReader reader, JsonSerializer serializer)
-        {
-            dynamic obj;
-
-            if (!TryReadJsonAsDynamic(reader, serializer, out obj) || obj == null)
+        {     
+            if (!TryReadJsonAsDynamic(reader, serializer, out dynamic obj) || obj == null)
                 return Enumerable.Empty<dynamic>();
 
             var list = obj as IList<dynamic> ?? new[] { obj };
-
             return list.AsEnumerable();
         }
 

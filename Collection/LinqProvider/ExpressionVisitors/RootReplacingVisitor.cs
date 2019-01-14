@@ -11,16 +11,8 @@ namespace CosmosDbContext.Collection.LinqProvider.ExpressionVisitors
         {
             this.newRoot = newRoot;
         }
-        protected override Expression VisitConstant(ConstantExpression node)
-        {
-            if (node.Type.IsGenericType && (node.Type.GetGenericTypeDefinition() == typeof(CosmosDbCollection<>)))
-            {
-                return Expression.Constant(newRoot);
-            }
-            else
-            {
-                return node;
-            }
-        }
+        protected override Expression VisitConstant(ConstantExpression node) => 
+             node.Type.IsGenericType && node.Type.GetGenericTypeDefinition() == typeof(CosmosDbCollection<>) ? Expression.Constant(newRoot) : node;            
+        
     }
 }

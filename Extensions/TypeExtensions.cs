@@ -10,15 +10,11 @@ namespace CosmosDbContext.Extensions
     {
         internal static Type GetElementTypeForExpression(this Type seqType)
         {
-            Type ienum = FindIEnumerable(seqType);
-            if (ienum == null)
-            {
-                return seqType;
-            }
-            return ienum.GetGenericArguments()[0];
+            var enumerableType = FindIEnumerableType(seqType);
+            return enumerableType == null ? seqType : enumerableType.GetGenericArguments()[0];            
         }
 
-        private static Type FindIEnumerable(Type seqType)
+        private static Type FindIEnumerableType(Type seqType)
         {
             if (seqType == null || seqType == typeof(string))
                 return null;
@@ -38,12 +34,12 @@ namespace CosmosDbContext.Extensions
                 }
             }
 
-            Type[] ifaces = seqType.GetInterfaces();
+            var ifaces = seqType.GetInterfaces();
             if (ifaces?.Length > 0)
             {
                 foreach (Type iface in ifaces)
                 {
-                    Type ienum = FindIEnumerable(iface);
+                    Type ienum = FindIEnumerableType(iface);
                     if (ienum != null)
                     {
                         return ienum;
@@ -53,7 +49,7 @@ namespace CosmosDbContext.Extensions
 
             if (seqType?.BaseType != typeof(object))
             {
-                return FindIEnumerable(seqType.BaseType);
+                return FindIEnumerableType(seqType.BaseType);
             }
 
             return null;

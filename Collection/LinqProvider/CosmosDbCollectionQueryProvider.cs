@@ -15,13 +15,11 @@ namespace CosmosDbContext.Collection.LinqProvider
         private static readonly MethodInfo createDocumentQueryMethod;
         static CosmosDbCollectionQueryProvider()
         {
-            createDocumentQueryMethod = typeof(DocumentClient).GetMethods().Where(m => 
-                   m.Name == "CreateDocumentQuery"
-                && m.IsGenericMethod
-                && m.GetParameters().Count() == 2
-                && m.GetParameters().First().ParameterType == typeof(Uri)
-                && m.GetParameters().ElementAt(1).ParameterType == typeof(FeedOptions)
-            ).Single();
+            createDocumentQueryMethod = typeof(DocumentClient).GetMethods().Single(m => m.Name == nameof(DocumentClient.CreateDocumentQuery) &&
+                                                                                       m.IsGenericMethod &&
+                                                                                       m.GetParameters().Count() == 2 &&
+                                                                                       m.GetParameters().First().ParameterType == typeof(Uri) &&
+                                                                                       m.GetParameters().ElementAt(1).ParameterType == typeof(FeedOptions));
         }
         public CosmosDbCollectionQueryProvider(string database, string collectionName, DocumentClient client)
             : base(database, collectionName, UriFactory.CreateDocumentCollectionUri(database, collectionName), client, typeof(CosmosDbCollection<>))
@@ -31,10 +29,8 @@ namespace CosmosDbContext.Collection.LinqProvider
 
         public override IQueryable<T> CreateQuery<T>(Expression expression) => new CosmosDbCollection<T>(this, expression);
 
-        protected override IOrderedQueryable CreateNewRoot(Type elementType, DocumentClient client, Uri uri, FeedOptions feedOptions)
-        {
-            var newRoot = (IOrderedQueryable)createDocumentQueryMethod.MakeGenericMethod(elementType).Invoke(client, new object[] { uri, feedOptions });
-            return newRoot;
-        }
+        protected override IOrderedQueryable CreateNewRoot(Type elementType, DocumentClient client, Uri uri, FeedOptions feedOptions) 
+            => (IOrderedQueryable)createDocumentQueryMethod.MakeGenericMethod(elementType).Invoke(client, new object[] { uri, feedOptions });            
+        
     }
 }

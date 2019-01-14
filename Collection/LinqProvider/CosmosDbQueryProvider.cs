@@ -18,11 +18,10 @@ namespace CosmosDbContext.Collection.LinqProvider
         private readonly string database;
         private readonly string collectionName;
         private readonly Uri uri;
-        internal IOptionProvider OptionsProvider { get; set; }
-
-        internal event Action<string> Log;
-
         private readonly Type queryType;
+
+        public IOptionProvider OptionsProvider { get; set; }
+        public event Action<string> Log;
 
         public CosmosDbQueryProvider(string database, string collectionName, Uri uri, DocumentClient client, Type queryType)
         {
@@ -37,7 +36,7 @@ namespace CosmosDbContext.Collection.LinqProvider
 
         public IQueryable CreateQuery(Expression expression)
         {
-            Type elementType = expression.Type.GetElementTypeForExpression();
+            var elementType = expression.Type.GetElementTypeForExpression();
             try
             {
                 return (IQueryable)Activator.CreateInstance(queryType.MakeGenericType(elementType), new object[] { this, expression });
@@ -50,10 +49,10 @@ namespace CosmosDbContext.Collection.LinqProvider
 
         public object Execute(Expression expression)
         {
-            Type elementType = expression.Type.GetElementTypeForExpression();
+            var elementType = expression.Type.GetElementTypeForExpression();
             try
             {
-                return this.GetType().GetMethods().Where(m => m.Name == nameof(Execute) && m.IsGenericMethod).Single().Invoke(this, new[] { expression });
+                return this.GetType().GetMethods().Single(m => m.Name == nameof(Execute) && m.IsGenericMethod).Invoke(this, new[] { expression });
             }
             catch (System.Reflection.TargetInvocationException tie)
             {
@@ -69,12 +68,12 @@ namespace CosmosDbContext.Collection.LinqProvider
 
             var newRoot = CreateNewRoot(type, client, uri, GetFeedOptions());
 
-            RootReplacingVisitor treeCopier = new RootReplacingVisitor(newRoot);
-            Expression newExpressionTree = treeCopier.Visit(expression);
+            var treeCopier = new RootReplacingVisitor(newRoot);
+            var newExpressionTree = treeCopier.Visit(expression);
 
             Log?.Invoke(GetQueryTextUNSAFE(newExpressionTree));
 
-            bool isEnumerable = (typeof(TResult).IsGenericType && typeof(TResult).GetGenericTypeDefinition() == typeof(IEnumerable<>));
+            var isEnumerable = (typeof(TResult).IsGenericType && typeof(TResult).GetGenericTypeDefinition() == typeof(IEnumerable<>));
             if (isEnumerable)
             {
                 return (TResult)newRoot.Provider.CreateQuery(newExpressionTree);

@@ -19,15 +19,10 @@ namespace CosmosDbContext.Collection
         internal CosmosDbCollection(IQueryProvider provider, Expression expression) : base(provider, expression)
         {
         }
-        public IEnumerable<T2> ExecuteSql<T2>(string sql)
-        {
-            return string.IsNullOrWhiteSpace(sql)
-                ? throw new ArgumentException("Provided sql string is empty")
-                : client.CreateDocumentQuery<T2>(uri, sql).ToList();
 
-            // NOTE: Currently, it is not supported to add Linq standard query operators to existing queries built from sql string
-            // See: "AsSQl is not supported"
-            // This means that currently there is no point in returning an IQueryable, because it cannot be appended further
-        }        
+        // NOTE: Currently, it is not supported to add Linq standard query operators to existing queries built from sql string
+        // See: "AsSQl is not supported"
+        // This means that currently there is no point in returning an IQueryable, because it cannot be appended further
+        public IEnumerable<T2> ExecuteSql<T2>(string sql) => string.IsNullOrWhiteSpace(sql) ? throw new ArgumentException("Provided sql string is empty") : client.CreateDocumentQuery<T2>(uri, sql).ToList();                    
     }
 }
